@@ -32,6 +32,22 @@ impl Inventory {
     }
 }
 
+struct StringWrapper {
+    string: String,
+}
+
+impl StringWrapper {
+    fn new(value: &str) -> Self {
+        Self {
+            string: value.to_string(),
+        }
+    }
+
+    fn count_from(&self, f: impl Fn(&String) -> i32) -> i32 {
+        f(&self.string)
+    }
+}
+
 fn main() {
     let store = Inventory {
         shirts: vec![ShirtColor::Blue, ShirtColor::Red, ShirtColor::Blue],
@@ -44,4 +60,20 @@ fn main() {
     let user_pref2 = None;
     let user_giveaway2 = store.giveaway(user_pref2);
     println!("User two got {:?}\n", user_giveaway2);
+
+    let string1 = StringWrapper::new("Hello, Hello, HELLO!");
+
+    let count_l_ignore_case = |string: &String| -> i32 {
+        let mut result: i32 = 0;
+
+        for char in string.to_lowercase().as_bytes() {
+            if *char == b'l' {
+                result += 1;
+            }
+        }
+
+        result
+    };
+
+    println!("L's: {}", string1.count_from(count_l_ignore_case));
 }
