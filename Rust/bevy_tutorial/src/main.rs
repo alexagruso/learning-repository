@@ -1,11 +1,8 @@
 use std::fmt::Display;
-use std::ops::Add;
-use std::ops::AddAssign;
-use std::ops::Mul;
-use std::ops::MulAssign;
 
 use bevy::prelude::*;
 use bevy::window;
+use bevy_tutorial::position::Position;
 
 const WINDOW_WIDTH: f32 = 1200.0;
 const WINDOW_HEIGHT: f32 = 720.0;
@@ -14,63 +11,9 @@ const MOVEMENT_SPEED: f32 = 5.0;
 const SPRINT_MULTIPLIER: f32 = 2.5;
 
 #[derive(Component)]
-struct Position {
-    x: f32,
-    y: f32,
-}
-
-impl Add<&Velocity> for Position {
-    type Output = Position;
-
-    fn add(self, rhs: &Velocity) -> Self::Output {
-        Position {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-        }
-    }
-}
-
-impl AddAssign<&Velocity> for Position {
-    fn add_assign(&mut self, rhs: &Velocity) {
-        self.x += rhs.x;
-        self.y += rhs.y;
-    }
-}
-
-impl Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
-    }
-}
-
-#[derive(Component, Clone)]
-struct Velocity {
-    x: f32,
-    y: f32,
-}
-
-impl Mul<f32> for Velocity {
-    type Output = Velocity;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        Velocity {
-            x: self.x * rhs,
-            y: self.y * rhs,
-        }
-    }
-}
-
-impl MulAssign<f32> for Velocity {
-    fn mul_assign(&mut self, rhs: f32) {
-        self.x *= rhs;
-        self.y *= rhs;
-    }
-}
-
-impl Display for Velocity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
-    }
+struct Projectile {
+    position: Position,
+    velocity: Velocity,
 }
 
 #[derive(Bundle)]
@@ -121,9 +64,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             transform: Transform {
                 scale: Vec3 {
-                    x: 5.0,
-                    y: 5.0,
-                    z: 5.0,
+                    x: 2.0,
+                    y: 2.0,
+                    ..default()
                 },
                 rotation: Quat::from_vec4(Vec4::from_array([0.0, 0.0, 0.25, 0.0])),
                 ..default()
@@ -131,6 +74,43 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
     });
+}
+
+fn in_bounds(position: &Position, velocity: &Velocity) -> bool {
+    let x_bound = WINDOW_WIDTH / 2.0;
+    let y_bound = WINDOW_HEIGHT / 2.0;
+
+    let position = position.clone() + velocity;
+
+    if position.x < -x_bound
+        || position.x > x_bound
+        || position.y < -y_bound
+        || position.y > y_bound
+    {
+        false
+    } else {
+        true
+    }
+}
+
+fn in_bounds_x(x_position: f32) -> bool {
+    let x_bound = WINDOW_WIDTH / 2.0;
+
+    if x_position < -x_bound || x_position > x_bound {
+        false
+    } else {
+        true
+    }
+}
+
+fn in_bounds_y(y_position: f32) -> bool {
+    let y_bound = WINDOW_HEIGHT / 2.0;
+
+    if y_position < -y_bound || y_position > y_bound {
+        false
+    } else {
+        true
+    }
 }
 
 fn handle_input(keyboard_input: Res<ButtonInput<KeyCode>>, mut query: Query<&mut Velocity>) {
@@ -169,12 +149,24 @@ fn update_position(mut query: Query<(&mut Position, &Velocity, &mut Transform, &
             sprite.flip_x = false;
         }
 
-        *position += velocity;
+        if in_bounds_x(position.x + velocity.x) {
+            position.x += velocity.x
+        }
+
+        if in_bounds_y(position.y + velocity.y) {
+            position.y += velocity.y
+        }
 
         transform.translation = Vec3 {
             x: position.x,
             y: position.y,
             ..default()
         };
+    }
+}
+
+fn spawn_projectile(mouse_input: Res<ButtonInput<MouseButton>>, mut commands: Commands) {
+    if mouse_input.just_pressed(MouseButton::Left) {
+        commands.spawn()
     }
 }
